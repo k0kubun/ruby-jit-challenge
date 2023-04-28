@@ -50,12 +50,21 @@ module JIT
         in :opt_plus
           recv = STACK[@stack_size - 2]
           obj = STACK[@stack_size - 1]
+
           asm.add(recv, obj)
           asm.sub(recv, 1)
+          @stack_size -= 1
+        in :opt_minus
+          recv = STACK[@stack_size - 2]
+          obj = STACK[@stack_size - 1]
+
+          asm.sub(recv, obj)
+          asm.add(recv, 1)
           @stack_size -= 1
         in :opt_lt
           recv = STACK[@stack_size - 2]
           obj = STACK[@stack_size - 1]
+
           asm.cmp(recv, obj)
           asm.mov(recv, C.to_value(false))
           asm.mov(:rax, C.to_value(true))
