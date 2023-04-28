@@ -53,6 +53,14 @@ module JIT
           asm.add(recv, obj)
           asm.sub(recv, 1)
           @stack_size -= 1
+        in :opt_lt
+          recv = STACK[@stack_size - 2]
+          obj = STACK[@stack_size - 1]
+          asm.cmp(recv, obj)
+          asm.mov(recv, C.to_value(false))
+          asm.mov(:rax, C.to_value(true))
+          asm.cmovl(recv, :rax)
+          @stack_size -= 1
         in :getlocal_WC_0
           # Get EP
           asm.mov(:rax, [CFP, C.rb_control_frame_t.offsetof(:ep)])
@@ -97,6 +105,7 @@ module JIT
           puts "  0x#{format("%x", address)}: #{mnemonic} #{op_str}"
         end
       end
+      puts
 
       jit_addr
     end
