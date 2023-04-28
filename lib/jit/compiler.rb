@@ -53,6 +53,14 @@ module JIT
           asm.add(recv, obj)
           asm.sub(recv, 1)
           @stack_size -= 1
+        in :getlocal_WC_0
+          # Get EP
+          asm.mov(:rax, [CFP, C.rb_control_frame_t.offsetof(:ep)])
+
+          # Load the local variable
+          idx = iseq.body.iseq_encoded[insn_index + 1]
+          asm.mov(STACK[@stack_size], [:rax, -idx * C.VALUE.size])
+          @stack_size += 1
         in :leave
           # Pop cfp: ec->cfp = cfp + 1 (rdi is EC, rsi is CFP)
           asm.lea(:rax, [CFP, C.rb_control_frame_t.size])
