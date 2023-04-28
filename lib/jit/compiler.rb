@@ -40,13 +40,26 @@ module JIT
         in :putnil
           asm.mov(STACK[@stack_size], C.to_value(nil))
           @stack_size += 1
+        in :putobject_INT2FIX_1_
+          asm.mov(STACK[@stack_size], C.to_value(1))
+          @stack_size += 1
+        in :putobject
+          operand = iseq.body.iseq_encoded[insn_index + 1]
+          asm.mov(STACK[@stack_size], operand)
+          @stack_size += 1
+        in :opt_plus
+          recv = STACK[@stack_size - 2]
+          obj = STACK[@stack_size - 1]
+          asm.add(recv, obj)
+          asm.sub(recv, 1)
+          @stack_size -= 1
         in :leave
           # Pop cfp: ec->cfp = cfp + 1 (rdi is EC, rsi is CFP)
           asm.lea(:rax, [CFP, C.rb_control_frame_t.size])
           asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], :rax)
 
           # return stack[0]
-          asm.mov(:rax, STACK[0])
+          asm.mov(:rax, STACK[@stack_size - 1])
           asm.ret
         end
         insn_index += insn.len
@@ -55,7 +68,7 @@ module JIT
       # Write machine code into memory and use it as a JIT function.
       iseq.body.jit_func = write(asm)
     rescue Exception => e
-      $stderr.puts e.full_message
+      abort e.full_message
     end
 
     private
