@@ -72,6 +72,48 @@ module JIT
         in :putobject
           operand = iseq.body.iseq_encoded[insn_index + 1]
           asm.mov(STACK[stack_size], operand)
+        in :putself
+          asm.mov(STACK[stack_size], [CFP, C.rb_control_frame_t.offsetof(:self)])
+        in :opt_send_without_block
+          cd = C.rb_call_data.new(iseq.body.iseq_encoded[insn_index + 1])
+          if cd.cc.cme_.def.type != C::VM_METHOD_TYPE_ISEQ
+            raise NotImplementedError
+          end
+
+          # Compile the callee ISEQ
+          callee_iseq = cd.cc.cme_.def.body.iseq.iseqptr
+          if callee_iseq.body.jit_func == 0
+            compile(callee_iseq)
+          end
+
+          # Get EP
+          asm.mov(:rax, [CFP, C.rb_control_frame_t.offsetof(:ep)]) # EP is SP - 1
+          # Spill arguments
+          C.vm_ci_argc(cd.ci).times do |i|
+            asm.mov([:rax, C.VALUE.size * (i + 1)], STACK[stack_size - C.vm_ci_argc(cd.ci) + i])
+          end
+
+          # Push cfp: ec->cfp = cfp - 1
+          asm.lea(CFP, [CFP, -C.rb_control_frame_t.size])
+          asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], CFP)
+          # Set EP
+          asm.lea(:rax, [:rax, C.VALUE.size * (C.vm_ci_argc(cd.ci) + 3)])
+          asm.mov([CFP, C.rb_control_frame_t.offsetof(:ep)], :rax)
+
+          # Save stack registers
+          saved_size = stack_size - C.vm_ci_argc(cd.ci) - 1
+          saved_size.times do |i|
+            asm.push(STACK[i])
+          end
+
+          # Call the JIT func
+          asm.call(callee_iseq.body.jit_func)
+          asm.mov(STACK[stack_size - C.vm_ci_argc(cd.ci) - 1], :rax)
+
+          # Pop stack registers
+          saved_size.times do |i|
+            asm.pop(STACK[saved_size - i - 1])
+          end
         in :opt_plus
           recv = STACK[stack_size - 2]
           obj = STACK[stack_size - 1]
@@ -120,9 +162,9 @@ module JIT
           end
           branches << branch
         in :leave
-          # Pop cfp: ec->cfp = cfp + 1 (rdi is EC, rsi is CFP)
-          asm.lea(:rax, [CFP, C.rb_control_frame_t.size])
-          asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], :rax)
+          # Pop cfp: ec->cfp = cfp + 1
+          asm.lea(CFP, [CFP, C.rb_control_frame_t.size])
+          asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], CFP)
 
           # return stack[0]
           asm.mov(:rax, STACK[stack_size - 1])
@@ -144,8 +186,11 @@ module JIT
         -1
       in :nop
         0
-      in :putnil | :putobject_INT2FIX_0_ | :putobject_INT2FIX_1_ | :putobject | :getlocal_WC_0
+      in :putnil | :putobject_INT2FIX_0_ | :putobject_INT2FIX_1_ | :putobject | :putself | :getlocal_WC_0
         1
+      in :opt_send_without_block
+        cd = C.rb_call_data.new(iseq.body.iseq_encoded[insn_index + 1])
+        -C.vm_ci_argc(cd.ci)
       end
     end
 
@@ -160,19 +205,19 @@ module JIT
       while insn_index < iseq.body.iseq_size
         insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
         case insn.name
-        in :nop | :putnil | :putobject_INT2FIX_0_ | :putobject_INT2FIX_1_ | :putobject | :opt_plus | :opt_minus | :opt_lt | :getlocal_WC_0
-          stack_size += sp_inc(iseq, insn_index)
-          insn_index += insn.len
-        in :branchunless
+        when :branchunless
           block[:end_index] = insn_index
           stack_size += sp_inc(iseq, insn_index)
           next_index = insn_index + insn.len
           blocks += split_blocks(iseq, insn_index: next_index, stack_size:, split_indexes:)
           blocks += split_blocks(iseq, insn_index: next_index + iseq.body.iseq_encoded[insn_index + 1], stack_size:, split_indexes:)
           break
-        in :leave
+        when :leave
           block[:end_index] = insn_index
           break
+        else
+          stack_size += sp_inc(iseq, insn_index)
+          insn_index += insn.len
         end
       end
 
