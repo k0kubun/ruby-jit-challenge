@@ -7,5 +7,6 @@ def branch(flag)
 end
 
 branch(true)
+branch(true)
 p branch(true)
 p branch(false)

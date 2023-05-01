@@ -7,4 +7,5 @@ def bar
 end
 
 bar
+bar
 p bar

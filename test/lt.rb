@@ -3,5 +3,6 @@ def lt(n)
 end
 
 lt(1)
+lt(1)
 p lt(1)
 p lt(2)
