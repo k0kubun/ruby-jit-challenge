@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+repo_root="$(cd "$(dirname "$0")"; cd ..; pwd)"
+ruby="$(which ruby)"
+
+if ! which benchmark-driver > /dev/null; then
+  gem install benchmark_driver
+fi
+
+benchmark-driver "${repo_root}/benchmark.yml" \
+  -e "no-jit::${ruby}" \
+  -e "rjit::${ruby} --rjit-call-threshold=3" \
+  -e "yjit::${ruby} --yjit-call-threshold=3" \
+  -e "ruby-jit::${ruby} --rjit=pause -r${repo_root}/lib/jit.rb --rjit-call-threshold=3"
