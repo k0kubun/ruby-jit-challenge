@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.summary = 'Ruby JIT Challenge'
   spec.description = 'Ruby JIT Challenge'
   spec.homepage = 'https://github.com/k0kubun/ruby-jit-challenge'
-  spec.required_ruby_version = '>= 3.3.0'
+  spec.required_ruby_version = '>= 3.3.0.dev'
 
   spec.files = Dir.chdir(__dir__) do
     `git ls-files -z`.split("\x0").reject do |f|
