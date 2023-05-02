@@ -26,6 +26,23 @@ $ docker run -it -v "$(pwd):/app" k0kubun/rjit bash
 
 See [Dockerfile](./Dockerfile) if you want to prepare the same environment locally.
 
+## Testing
+
+You'll build a JIT in multiple steps.
+Test scripts in `test/*.rb` will help you test them one by one.
+You can run them with your JIT enabled with [bin/ruby](./bin/ruby).
+
+```
+bin/ruby test/none.rb
+```
+
+[test/jit/compiler\_test.rb](./test/jit/compiler_test.rb) runs all these scripts with your JIT enabled.
+You can run it as follows.
+
+```
+rake test
+```
+
 ## 1. Compile nil
 
 ```rb
