@@ -79,6 +79,11 @@ This means that `none` consists of two instructions: `putnil` and `leave`.
 `leave` instruction is like `return`. It pops the stack top value and uses it as a return value of the method.
 Imagine `return stack.pop`.
 
+NOTE: Click ▼ to open hints.
+
+<details>
+<summary>Assembler</summary>
+
 ### Assembler
 
 [lib/jit/assembler.rb](./lib/jit/assembler.rb) has an x86\_64 assembler that was copied from RJIT and then simplified.
@@ -106,6 +111,10 @@ add rax, 2
 
 See [lib/jit/assembler.rb](./lib/jit/assembler.rb) for what kind of input it can handle.
 
+</details>
+<details>
+<summary>Instructions</summary>
+
 ### Instructions
 
 There are various x86\_64 instructions.
@@ -126,6 +135,10 @@ For `test/none.rb`, only `mov`, `add`, and `ret` are necessary.
 | call        | Call a function.                            | `call 0x1234` | `func()` |
 | ret         | Return a value.                             | `ret` | `return rax` |
 
+</details>
+<details>
+<summary>Registers</summary>
+
 ### Registers
 
 Registers are like variables in machine code.
@@ -141,8 +154,7 @@ You're free to use registers in whatever way, but a reference implementation use
 | r10      | A general-purpose register. The reference implementation used this for the 3rd slot of the Ruby VM stack, `stack[2]`. |
 | r11      | A general-purpose register. The reference implementation used this for the 4th slot of the Ruby VM stack, `stack[3]`. |
 
-NOTE: Click ▼ to open hints.
-
+</details>
 <details>
 <summary>Compiling putnil</summary>
 
@@ -151,7 +163,6 @@ NOTE: Click ▼ to open hints.
 TODO
 
 </details>
-
 <details>
 <summary>Compiling leave</summary>
 
