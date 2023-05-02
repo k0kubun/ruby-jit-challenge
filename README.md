@@ -104,9 +104,27 @@ add rax, 2
 `[rsi + 8]` is memory access based off of a register, which reads memory 8 bytes after the address in `rsi`.
 `2` is an immediate value.
 
+See [lib/jit/assembler.rb](./lib/jit/assembler.rb) for what kind of input it can handle.
+
 ### Instructions
 
-TODO
+There are various x86\_64 instructions.
+However, it seems enough to only know about the following instructions to pass tests in this tutorial.
+
+| Instruction | Description                                 | Example      | Effect     |
+|:------------|:--------------------------------------------|:-------------|:-----------|
+| mov         | Assign a value.                             | `mov rax, 1` | `rax = 1`  |
+| add         | Add a value.                                | `add rax, 1` | `rax += 1` |
+| sub         | Subtract a value.                           | `sub rax, 1` | `rax -= 1` |
+| cmp         | Compare values. Use it with cmovl.          | `cmp rdi, rsi`   | `rdi < rsi` |
+| cmovl       | Assign a value if left < right.             | `cmovl rax, rcx` | `rax = rcx if rdi < rsi` |
+| test        | Compare values. Use it with jz.             | `test rax, 1` | `rax & 1` |
+| jz          | Jump if left and right have no common bits. | `jz 0x1234` | `goto 0x1234 if rax & 1 == 0` |
+| jmp         | Jump to an address.                         | `jmp 0x1234` | `goto 0x1234` |
+| call        | Call a function.                            | `call 0x1234` | `func()` |
+| ret         | Return a value.                             | `ret` | `return rax` |
+
+Only `mov`, `add`, and `ret` are necessary to compile `test/none.rb`.
 
 ### Registers
 
