@@ -6,7 +6,7 @@ Supplemental material to [Ruby JIT Hacking Guide](https://rubykaigi.org/2023/pre
 
 This is a small tutorial to write a JIT compiler in Ruby.
 We don't expect any prior experience in compilers or assembly languages.
-It's supposed to take only a few minutes if you open all hints, but challenging if you don't.
+It's supposed to take only several minutes if you open all hints, but challenging if you don't.
 
 You'll write a JIT that can compile a Fibonacci benchmark.
 With relaxed implementation requirements, you'll hopefully create a JIT faster than existing Ruby JITs with ease.
@@ -43,11 +43,39 @@ runs all test scripts with your JIT enabled.
 
 ## 1. Compile nil
 
+Let's compile the following simple method that just returns nil.
+
 ```rb
 def none
   nil
 end
 ```
+
+### --dump=insns
+
+In CRuby, each Ruby method is internally compiled into an "Instruction Sequence", also known as ISeq.
+The CRuby interpreter executes Ruby code by looping over instructions in this sequence.
+
+Typically, a CRuby JIT takes an ISeq as input to the JIT compiler and outputs machine code
+that works in the same way as the ISeq. In this exercise, it's the only input you'll need to take care of.
+
+You can dump ISeqs in a file by `ruby --dump=insns option`.
+Let's have a look at the ISeq of `none` method.
+
+```
+$ ruby --dump=insns test/none.rb
+...
+== disasm: #<ISeq:none@test/none.rb:1 (1,0)-(3,3)>
+0000 putnil                                                           (   1)[Ca]
+0001 leave                                                            (   3)[Re]
+```
+
+This means that `none` consists of two instructions: `putnil` and `leave`.
+
+`putnil` instruction puts nil on the "stack" of the Ruby interpreter. Imagine `stack = []; stack << nil`.
+
+`leave` instruction is like `return`. It pops the stack top value and uses it as a return value of the method.
+Imagine `return stack.pop`.
 
 ## 2. Compile 1 + 2
 
