@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 repo_root="$(cd "$(dirname "$0")"; cd ..; pwd)"
 ruby="${RJIT_RUBY:-"ruby"}"
-exec "$ruby" "-r${repo_root}/lib/jit.rb" --rjit=pause --rjit-call-threshold=2 "$@"
+exec "$ruby" "-r${repo_root}/lib/jit.rb" --rjit=pause --rjit-call-threshold=3 "$@"
