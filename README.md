@@ -2,6 +2,18 @@
 
 Supplemental material to [Ruby JIT Hacking Guide](https://rubykaigi.org/2023/presentations/k0kubun.html) for RubyKaigi 2023
 
+## Introduction
+
+This is a small tutorial to write a JIT compiler in Ruby.
+We don't expect any prior experience in compilers or assembly languages.
+It's supposed to take only a few minutes if you open all hints, but challenging if you don't.
+
+You'll write a JIT that can compile a Fibonacci benchmark.
+With relaxed implementation requirements, you'll hopefully create a JIT faster than existing Ruby JITs with ease.
+
+The goal of this repository is to make you feel comfortable using and/or contributing to Ruby JIT.
+More importantly, enjoy writing a compiler in Ruby.
+
 ## Setup
 
 This repository assumes an `x86_64-linux` environment and a Ruby master build.
