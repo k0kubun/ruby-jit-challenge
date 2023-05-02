@@ -16,7 +16,9 @@ More importantly, enjoy writing a compiler in Ruby.
 
 ## Setup
 
-This repository assumes an `x86_64-linux` environment and a Ruby master build.
+This repository assumes an `x86_64-linux` environment.
+It also requires a Ruby master build to leverage RJIT's interface to integrate a custom JIT.
+
 It's recommended to use the following Docker container environment.
 There's also [bin/docker](./bin/docker) as a shorthand.
 
@@ -98,7 +100,11 @@ end
 
 ## 4. Benchmark
 
+Let's measure the performance.
+[bin/bench](./bin/bench) allows you to compare your JIT (ruby-jit) and other CRuby JITs.
+
 ```
+$ bin/bench
 Calculating -------------------------------------
                          no-jit        rjit        yjit    ruby-jit
              fib(32)      5.250      19.481      32.841      58.145 i/s
