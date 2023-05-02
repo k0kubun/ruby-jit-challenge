@@ -45,7 +45,7 @@ runs all test scripts with your JIT enabled.
 
 ## 1. Compile nil
 
-Let's compile the following simple method that just returns nil.
+First, we'll compile the following simple method that just returns nil.
 
 ```rb
 def none
@@ -99,13 +99,29 @@ TODO
 
 ## 2. Compile 1 + 2
 
+Next, we'll compile something more interesting: `Integer#+`.
+
 ```rb
-def three
+def plus
   1 + 2
 end
 ```
 
-## 3. Compile fibonatti
+### --dump=insns
+
+```
+$ ruby --dump=insns test/plus.rb
+...
+== disasm: #<ISeq:plus@test/plus.rb:1 (1,0)-(3,3)>
+0000 putobject_INT2FIX_1_                                             (   2)[LiCa]
+0001 putobject                              2
+0003 opt_plus                               <calldata!mid:+, argc:1, ARGS_SIMPLE>[CcCr]
+0005 leave                                                            (   3)[Re]
+```
+
+## 3. Compile fibonacci
+
+Finally, we'll have a look at the benchmark target, Fibonacci.
 
 ```rb
 def fib(n)
@@ -114,6 +130,34 @@ def fib(n)
   end
   return fib(n-1) + fib(n-2)
 end
+```
+
+### --dump=insns
+
+```
+$ ruby --dump=insns test/fib.rb
+...
+== disasm: #<ISeq:fib@test/fib.rb:1 (1,0)-(6,3)>
+local table (size: 1, argc: 1 [opts: 0, rest: -1, post: 0, block: -1, kw: -1@-1, kwrest: -1])
+[ 1] n@0<Arg>
+0000 getlocal_WC_0                          n@0                       (   2)[LiCa]
+0002 putobject                              2
+0004 opt_lt                                 <calldata!mid:<, argc:1, ARGS_SIMPLE>[CcCr]
+0006 branchunless                           11
+0008 getlocal_WC_0                          n@0                       (   3)[Li]
+0010 leave                                  [Re]
+0011 putself                                                          (   5)[Li]
+0012 getlocal_WC_0                          n@0
+0014 putobject_INT2FIX_1_
+0015 opt_minus                              <calldata!mid:-, argc:1, ARGS_SIMPLE>[CcCr]
+0017 opt_send_without_block                 <calldata!mid:fib, argc:1, FCALL|ARGS_SIMPLE>
+0019 putself
+0020 getlocal_WC_0                          n@0
+0022 putobject                              2
+0024 opt_minus                              <calldata!mid:-, argc:1, ARGS_SIMPLE>[CcCr]
+0026 opt_send_without_block                 <calldata!mid:fib, argc:1, FCALL|ARGS_SIMPLE>
+0028 opt_plus                               <calldata!mid:+, argc:1, ARGS_SIMPLE>[CcCr]
+0030 leave                                                            (   6)[Re]
 ```
 
 ## 4. Benchmark
