@@ -36,12 +36,10 @@ You can run them with your JIT enabled with [bin/ruby](./bin/ruby).
 bin/ruby test/none.rb
 ```
 
-[test/jit/compiler\_test.rb](./test/jit/compiler_test.rb) runs all these scripts with your JIT enabled.
-You can run it as follows.
+You can also dump compiled code with `bin/ruby --rjit-dump-disasm test/none.rb`.
 
-```
-rake test
-```
+For your convenience, `rake test` ([test/jit/compiler\_test.rb](./test/jit/compiler_test.rb))
+runs all test scripts with your JIT enabled.
 
 ## 1. Compile nil
 
