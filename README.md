@@ -79,6 +79,24 @@ This means that `none` consists of two instructions: `putnil` and `leave`.
 `leave` instruction is like `return`. It pops the stack top value and uses it as a return value of the method.
 Imagine `return stack.pop`.
 
+<details>
+<summary>Compiling putnil</summary>
+
+### Compiling putnil
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling leave</summary>
+
+### Compiling leave
+
+TODO
+
+</details>
+
 ## 2. Compile 1 + 2
 
 ```rb
