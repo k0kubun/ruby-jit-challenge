@@ -135,7 +135,7 @@ TODO
 </details>
 
 <details>
-<summary>Compiling opt\_plus</summary>
+<summary>Compiling opt_plus</summary>
 
 ### Compiling opt\_plus
 
@@ -185,7 +185,7 @@ local table (size: 1, argc: 1 [opts: 0, rest: -1, post: 0, block: -1, kw: -1@-1,
 ```
 
 <details>
-<summary>Compiling opt\_minus</summary>
+<summary>Compiling opt_minus</summary>
 
 ### Compiling opt\_minus
 
@@ -203,7 +203,7 @@ TODO
 </details>
 
 <details>
-<summary>Compiling opt\_lt</summary>
+<summary>Compiling opt_lt</summary>
 
 ### Compiling opt\_lt
 
@@ -221,7 +221,7 @@ TODO
 </details>
 
 <details>
-<summary>Compiling opt\_send\_without\_block</summary>
+<summary>Compiling opt_send_without_block</summary>
 
 ### Compiling opt\_send\_without\_block
 
