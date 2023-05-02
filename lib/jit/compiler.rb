@@ -41,5 +41,28 @@ module JIT
     rescue Exception => e
       abort e.full_message
     end
+
+    private
+
+    # Write bytes in a given assembler into @jit_buf.
+    # @param asm [JIT::Assembler]
+    def write(asm)
+      jit_addr = @jit_buf + @jit_pos
+
+      # Append machine code to the JIT buffer
+      C.mprotect_write(@jit_buf, JIT_BUF_SIZE) # make @jit_buf writable
+      @jit_pos += asm.assemble(jit_addr)
+      C.mprotect_exec(@jit_buf, JIT_BUF_SIZE) # make @jit_buf executable
+
+      # Dump disassembly if --rjit-dump-disasm
+      if C.rjit_opts.dump_disasm
+        C.dump_disasm(jit_addr, @jit_buf + @jit_pos).each do |address, mnemonic, op_str|
+          puts "  0x#{format("%x", address)}: #{mnemonic} #{op_str}"
+        end
+        puts
+      end
+
+      jit_addr
+    end
   end
 end
