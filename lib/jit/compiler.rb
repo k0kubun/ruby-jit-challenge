@@ -239,8 +239,8 @@ module JIT
         C.dump_disasm(jit_addr, @jit_buf + @jit_pos).each do |address, mnemonic, op_str|
           puts "  0x#{format("%x", address)}: #{mnemonic} #{op_str}"
         end
+        puts
       end
-      puts
 
       jit_addr
     end
