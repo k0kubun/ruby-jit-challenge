@@ -2,14 +2,13 @@
 
 Supplemental material to [Ruby JIT Hacking Guide](https://rubykaigi.org/2023/presentations/k0kubun.html) for RubyKaigi 2023
 
-## 1. Setup
+## Setup
 
 ```bash
-$ docker pull k0kubun/rjit
 $ docker run -it k0kubun/rjit bash
 ```
 
-## 2. Compile nil
+## 1. Compile nil
 
 ```rb
 def none
@@ -17,7 +16,7 @@ def none
 end
 ```
 
-## 3. Compile 1 + 2
+## 2. Compile 1 + 2
 
 ```rb
 def three
@@ -25,7 +24,7 @@ def three
 end
 ```
 
-## 4. Compile fibonatti
+## 3. Compile fibonatti
 
 ```rb
 def fib(n)
@@ -36,7 +35,7 @@ def fib(n)
 end
 ```
 
-## 5. Benchmark
+## 4. Benchmark
 
 ```
 Calculating -------------------------------------
