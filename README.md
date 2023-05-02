@@ -160,7 +160,52 @@ You're free to use registers in whatever way, but a reference implementation use
 
 ### Compiling putnil
 
-TODO
+Open [lib/jit/compiler.rb](./lib/jit/compiler.rb) and add a case for `putnil`.
+
+```diff
+       # Iterate over each YARV instruction.
+       insn_index = 0
+       while insn_index < iseq.body.iseq_size
+         insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
+         case insn.name
+         in :nop
+           # none
++        in :putnil
++          # ...
+         end
+         insn_index += insn.len
+       end
+```
+
+Let's push `nil` to the stack.
+In the scope of this tutorial, it's enough to use a random register as a replacement for a stack slot.
+
+Let's say you decided to use `r8` for `stack[0]`, you could write the code as follows, for example.
+
+```diff
++      STACK = [:r8]
+
+       # Iterate over each YARV instruction.
+       insn_index = 0
++      stack_size = 0
+       while insn_index < iseq.body.iseq_size
+         insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
+         case insn.name
+         in :nop
+           # none
+         in :putnil
++          asm.mov(STACK[stack_size], C.to_value(nil))
++          stack_size += 1
+         end
+         insn_index += insn.len
+       end
+```
+
+`C` is a module with useful helpers to write a JIT.
+`C.to_value` converts any Ruby object into its representation in the C language (and machine code).
+
+`C.to_value(nil)` is 4, so this does `asm.mov(:r8, 4)`, which means `stack[0] = nil`.
+This value in `r8` should be then handled by subsequent instructions like `leave`.
 
 </details>
 <details>
