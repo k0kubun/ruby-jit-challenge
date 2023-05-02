@@ -79,6 +79,12 @@ This means that `none` consists of two instructions: `putnil` and `leave`.
 `leave` instruction is like `return`. It pops the stack top value and uses it as a return value of the method.
 Imagine `return stack.pop`.
 
+### Assembler
+
+TODO
+
+Click ▼ to open hints.
+
 <details>
 <summary>Compiling putnil</summary>
 
@@ -118,6 +124,24 @@ $ ruby --dump=insns test/plus.rb
 0003 opt_plus                               <calldata!mid:+, argc:1, ARGS_SIMPLE>[CcCr]
 0005 leave                                                            (   3)[Re]
 ```
+
+<details>
+<summary>Compiling putobject</summary>
+
+### Compiling leave
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling opt\_plus</summary>
+
+### Compiling opt\_plus
+
+TODO
+
+</details>
 
 ## 3. Compile fibonacci
 
@@ -159,6 +183,51 @@ local table (size: 1, argc: 1 [opts: 0, rest: -1, post: 0, block: -1, kw: -1@-1,
 0028 opt_plus                               <calldata!mid:+, argc:1, ARGS_SIMPLE>[CcCr]
 0030 leave                                                            (   6)[Re]
 ```
+
+<details>
+<summary>Compiling opt\_minus</summary>
+
+### Compiling opt\_minus
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling getlocal</summary>
+
+### Compiling getlocal
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling opt\_lt</summary>
+
+### Compiling opt\_lt
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling branchunless</summary>
+
+### Compiling branchunless
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling opt\_send\_without\_block</summary>
+
+### Compiling opt\_send\_without\_block
+
+TODO
+
+</details>
 
 ## 4. Benchmark
 
