@@ -5,7 +5,7 @@ Supplemental material to [Ruby JIT Hacking Guide](https://rubykaigi.org/2023/pre
 ## Setup
 
 ```bash
-$ docker run -it k0kubun/rjit bash
+$ docker run -it -v "$(pwd):/app" k0kubun/rjit bash
 ```
 
 ## 1. Compile nil
