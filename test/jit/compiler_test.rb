@@ -39,7 +39,7 @@ class JITCompilerTest < Minitest::Test
   private
 
   def assert_jit(path, expected)
-    stdout, stderr, status = Bundler.with_unbundled_env do
+    stdout, stderr, status = with_unbundled_env do
       Open3.capture3(
         RbConfig.ruby, "-r#{REPO_ROOT}/lib/jit.rb", '--rjit=pause',
         '--rjit-call-threshold=3', File.expand_path(path, REPO_ROOT)
@@ -49,5 +49,13 @@ class JITCompilerTest < Minitest::Test
       "stdout:\n```\n#{stdout}```\n\nstderr:\n```\n#{stderr}```"
     assert_equal '', stderr
     assert_equal "#{expected}\n", stdout
+  end
+
+  def with_unbundled_env(&block)
+    if defined?(Bundler)
+      Bundler.with_unbundled_env { block.call }
+    else
+      block.call
+    end
   end
 end
