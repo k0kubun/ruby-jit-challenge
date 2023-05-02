@@ -109,7 +109,9 @@ See [lib/jit/assembler.rb](./lib/jit/assembler.rb) for what kind of input it can
 ### Instructions
 
 There are various x86\_64 instructions.
-However, it seems enough to only know about the following instructions to pass tests in this tutorial.
+However, it's enough to use only the following instructions to pass tests in this tutorial.
+
+For `test/none.rb`, only `mov`, `add`, and `ret` are necessary.
 
 | Instruction | Description                                 | Example      | Effect     |
 |:------------|:--------------------------------------------|:-------------|:-----------|
@@ -124,11 +126,20 @@ However, it seems enough to only know about the following instructions to pass t
 | call        | Call a function.                            | `call 0x1234` | `func()` |
 | ret         | Return a value.                             | `ret` | `return rax` |
 
-Only `mov`, `add`, and `ret` are necessary to compile `test/none.rb`.
-
 ### Registers
 
-TODO
+Registers are like variables in machine code.
+You're free to use registers in whatever way, but a reference implementation used only the following registers.
+
+| Register | Purpose |
+|:---------|:--------|
+| rdi      | `ec` (execution context) is set when a JIT function is called. It represents a Ruby thread. Used when you push/pop a stack frame. |
+| rsi      | `cfp` (control frame pointer) is set when a JIT function is called. It represents a stack frame. Used when you fetch a local variable or a receiver. |
+| rax      | A JIT function return value to be set before `ret` instruction. It can be also used as a "scratch register" to hold temporary values. |
+| r8       | A general-purpose register. The reference implementation used this for the 1st slot of the Ruby VM stack, `stack[0]`. |
+| r9       | A general-purpose register. The reference implementation used this for the 2nd slot of the Ruby VM stack, `stack[1]`. |
+| r10      | A general-purpose register. The reference implementation used this for the 3rd slot of the Ruby VM stack, `stack[2]`. |
+| r11      | A general-purpose register. The reference implementation used this for the 4th slot of the Ruby VM stack, `stack[3]`. |
 
 NOTE: Click ▼ to open hints.
 
