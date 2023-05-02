@@ -81,9 +81,38 @@ Imagine `return stack.pop`.
 
 ### Assembler
 
+[lib/jit/assembler.rb](./lib/jit/assembler.rb) has an x86\_64 assembler that was copied from RJIT and then simplified.
+Feel free to remove it and write it from scratch, but this tutorial will not cover how to encode x86\_64 instructions.
+
+Here's example code using `Assembler`.
+
+```rb
+asm = Assembler.new
+asm.mov(:rax, [:rsi, 8])
+asm.add(:rax, 2)
+write(asm)
+```
+
+This writes the following machine code into memory.
+
+```asm
+mov rax, [rsi + 8]
+add rax, 2
+```
+
+`rax` and `rsi` are registers.
+`[rsi + 8]` is memory access based off of a register, which reads memory 8 bytes after the address in `rsi`.
+`2` is an immediate value.
+
+### Instructions
+
 TODO
 
-Click ▼ to open hints.
+### Registers
+
+TODO
+
+NOTE: Click ▼ to open hints.
 
 <details>
 <summary>Compiling putnil</summary>
@@ -215,6 +244,15 @@ TODO
 <summary>Compiling branchunless</summary>
 
 ### Compiling branchunless
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling putself</summary>
+
+### Compiling putself
 
 TODO
 

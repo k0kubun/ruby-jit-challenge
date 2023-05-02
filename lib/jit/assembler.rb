@@ -69,6 +69,7 @@ module JIT
     # Instructions
     #
 
+    # ADD: dst = dst + src
     def add(dst, src)
       case [dst, src]
       # ADD r/m64, imm8 (Mod 00: [reg])
@@ -113,6 +114,7 @@ module JIT
       end
     end
 
+    # AND: dst = dst & src
     def and(dst, src)
       case [dst, src]
       # AND r/m64, imm8 (Mod 11: reg)
@@ -148,6 +150,7 @@ module JIT
       end
     end
 
+    # CALL: dst()
     def call(dst)
       case dst
       # CALL rel32
@@ -166,6 +169,7 @@ module JIT
       end
     end
 
+    # CMOVE: dst = src if left == right
     def cmove(dst, src)
       case [dst, src]
       # CMOVE r64, r/m64 (Mod 11: reg)
@@ -180,6 +184,7 @@ module JIT
       end
     end
 
+    # CMOVG: dst = src if left > right
     def cmovg(dst, src)
       case [dst, src]
       # CMOVG r64, r/m64 (Mod 11: reg)
@@ -194,6 +199,7 @@ module JIT
       end
     end
 
+    # CMOVGE: dst = src if left >= right
     def cmovge(dst, src)
       case [dst, src]
       # CMOVGE r64, r/m64 (Mod 11: reg)
@@ -208,6 +214,7 @@ module JIT
       end
     end
 
+    # CMOVL: dst = src if left < right
     def cmovl(dst, src)
       case [dst, src]
       # CMOVL r64, r/m64 (Mod 11: reg)
@@ -222,6 +229,7 @@ module JIT
       end
     end
 
+    # CMOVLE: dst = src if left <= right
     def cmovle(dst, src)
       case [dst, src]
       # CMOVLE r64, r/m64 (Mod 11: reg)
@@ -236,6 +244,7 @@ module JIT
       end
     end
 
+    # CMOVNE: dst = src if left != right
     def cmovne(dst, src)
       case [dst, src]
       # CMOVNE r64, r/m64 (Mod 11: reg)
@@ -250,6 +259,7 @@ module JIT
       end
     end
 
+    # CMOVNZ: dst = src if left != 0
     def cmovnz(dst, src)
       case [dst, src]
       # CMOVNZ r64, r/m64 (Mod 11: reg)
@@ -264,6 +274,7 @@ module JIT
       end
     end
 
+    # CMOVZ: dst = src if left == 0
     def cmovz(dst, src)
       case [dst, src]
       # CMOVZ r64, r/m64 (Mod 11: reg)
@@ -288,6 +299,7 @@ module JIT
       end
     end
 
+    # CMP: Compare left and right
     def cmp(left, right)
       case [left, right]
       # CMP r/m8, imm8 (Mod 01: [reg]+disp8)
@@ -384,6 +396,7 @@ module JIT
       end
     end
 
+    # JBE: Jump to dst if left >= right
     def jbe(dst)
       case dst
       # JBE rel8
@@ -397,6 +410,7 @@ module JIT
       end
     end
 
+    # JE: Jump to dst if left == right
     def je(dst)
       case dst
       # JE rel8
@@ -410,6 +424,7 @@ module JIT
       end
     end
 
+    # JE: Jump to dst if left == right
     def jl(dst)
       case dst
       # JL rel32
@@ -419,6 +434,7 @@ module JIT
       end
     end
 
+    # JMP: Jump to dst
     def jmp(dst)
       case dst
       # JZ rel8
@@ -440,6 +456,7 @@ module JIT
       end
     end
 
+    # JNE: Jump to dst if left != right
     def jne(dst)
       case dst
       # JNE rel8
@@ -453,6 +470,7 @@ module JIT
       end
     end
 
+    # JNZ: Jump to dst if left != 0
     def jnz(dst)
       case dst
       # JE rel8
@@ -466,6 +484,7 @@ module JIT
       end
     end
 
+    # JO: Jump to dst if overflow
     def jo(dst)
       case dst
       # JO rel32
@@ -475,6 +494,7 @@ module JIT
       end
     end
 
+    # JZ: Jump to dst if left == 0
     def jz(dst)
       case dst
       # JZ rel8
@@ -488,6 +508,7 @@ module JIT
       end
     end
 
+    # LEA: dst = &src
     def lea(dst, src)
       case [dst, src]
       # LEA r64,m (Mod 01: [reg]+disp8)
@@ -513,6 +534,7 @@ module JIT
       end
     end
 
+    # MOV: dst = src
     def mov(dst, src)
       case dst
       in R32 => dst_reg
@@ -686,6 +708,7 @@ module JIT
       end
     end
 
+    # OR: dst = dst | src
     def or(dst, src)
       case [dst, src]
       # OR r/m64, imm8 (Mod 11: reg)
@@ -721,6 +744,7 @@ module JIT
       end
     end
 
+    # PUSH: Push src onto the stack
     def push(src)
       case src
       # PUSH r64
@@ -731,6 +755,7 @@ module JIT
       end
     end
 
+    # POP: Pop from the stack to dst
     def pop(dst)
       case dst
       # POP r64
@@ -741,12 +766,14 @@ module JIT
       end
     end
 
+    # RET: Return
     def ret
       # RET
       # Near return: A return to a procedure within the current code segment
       insn(opcode: 0xc3)
     end
 
+    # SAR: dst = dst >> src
     def sar(dst, src)
       case [dst, src]
       in [R64 => dst_reg, IMM8 => src_imm]
@@ -761,6 +788,7 @@ module JIT
       end
     end
 
+    # SUB: dst = dst - src
     def sub(dst, src)
       case [dst, src]
       # SUB r/m64, imm8 (Mod 11: reg)
@@ -785,6 +813,7 @@ module JIT
       end
     end
 
+    # TEST: Compare test and right
     def test(left, right)
       case [left, right]
       # TEST r/m8*, imm8 (Mod 01: [reg]+disp8)
@@ -849,6 +878,7 @@ module JIT
       end
     end
 
+    # XOR: dst = dst ^ src
     def xor(dst, src)
       case [dst, src]
       # XOR r/m64, r64 (Mod 11: reg)
