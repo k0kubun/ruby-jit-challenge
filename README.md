@@ -4,9 +4,15 @@ Supplemental material to [Ruby JIT Hacking Guide](https://rubykaigi.org/2023/pre
 
 ## Setup
 
+This repository assumes an `x86_64-linux` environment and a Ruby master build.
+It's recommended to use the following Docker container environment.
+There's also [bin/docker](./bin/docker) as a shorthand.
+
 ```bash
 $ docker run -it -v "$(pwd):/app" k0kubun/rjit bash
 ```
+
+See [Dockerfile](./Dockerfile) if you want to prepare the same environment locally.
 
 ## 1. Compile nil
 
