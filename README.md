@@ -142,7 +142,8 @@ For `test/none.rb`, only `mov`, `add`, and `ret` are necessary.
 ### Registers
 
 Registers are like variables in machine code.
-You're free to use registers in whatever way, but a reference implementation used only the following registers.
+You're free to use registers in whatever way, but a [reference implementation](https://github.com/Shopify/ruby-jit-challenge/blob/k0kubun/lib/jit/compiler.rb)
+used only the following registers.
 
 | Register | Purpose |
 |:---------|:--------|
@@ -177,7 +178,7 @@ Open [lib/jit/compiler.rb](./lib/jit/compiler.rb) and add a case for `putnil`.
        end
 ```
 
-Let's push `nil` to the stack.
+Let's push `nil` onto the stack.
 In the scope of this tutorial, it's enough to use a random register as a replacement for a stack slot.
 
 Let's say you decided to use `r8` for `stack[0]`, you could write the code as follows, for example.
@@ -213,7 +214,93 @@ This value in `r8` should be then handled by subsequent instructions like `leave
 
 ### Compiling leave
 
-TODO
+`leave` instruction needs to do two things.
+
+1. Pop a stack frame
+2. Return a value
+
+A JIT function is called after a corresponding stack frame is pushed.
+However, the Ruby VM is not responsible for popping the stack frame after calling the JIT function.
+So a JIT function needs to pop it on `leave` instruction.
+
+A stack frame `cfp` is in `rsi`. The interpreter reads `ec->cfp` to fetch the current stack frame and `ec` is in `rdi`.
+Therefore, you can generate code to pop a stack frame as follows.
+
+```diff
+       STACK = [:r8]
++      EC = :rdi
++      CFP = :rsi
+
+       # Iterate over each YARV instruction.
+       insn_index = 0
+       stack_size = 0
+       while insn_index < iseq.body.iseq_size
+         insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
+         case insn.name
+         in :nop
+           # none
+         in :putnil
+           asm.mov(STACK[stack_size], C.to_value(nil))
+           stack_size += 1
++        in :leave
++          asm.add(CFP, C.rb_control_frame_t.size)
++          asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], CFP)
+         end
+         insn_index += insn.len
+       end
+```
+
+The `cfp` grows downward; `cfp -= 1` pushes a frame, and `cfp += 1` pops a frame.
+Here, we want to pop a frame, so we do `cfp += 1`.
+When we increment a pointer, `1` actually means the size of what it points to.
+`cfp` is called `rb_control_frame_t` in the Ruby VM, and you can get its size by `C.rb_control_frame_t.size`.
+
+To set that to `ec->cfp`, you need to get a memory address based off of `ec`.
+The offset of `ec->cfp` relative to the head of `ec` is in `C.rb_execution_context_t.offsetof(:cfp)`.
+So you can use `[EC, C.rb_execution_context_t.offsetof(:cfp)]` to get `ec->cfp`.
+
+Finally, we'll return a value from the JIT function.
+You should set a stack-top value to `rax` and then put `ret` instruction.
+
+```diff
+       # Iterate over each YARV instruction.
+       insn_index = 0
+       stack_size = 0
+       while insn_index < iseq.body.iseq_size
+         insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
+         case insn.name
+         in :nop
+           # none
+         in :putnil
+           asm.mov(STACK[stack_size], C.to_value(nil))
+           stack_size += 1
+         in :leave
+           asm.add(CFP, C.rb_control_frame_t.size)
+           asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], CFP)
++          asm.mov(:rax, STACK[stack_size - 1])
++          asm.ret
+         end
+         insn_index += insn.len
+       end
+```
+
+Now you should be able to execute `test/none.rb`. Test it as follows.
+
+```
+$ bin/ruby --rjit-dump-disasm test/none.rb
+  0x564e87d2c000: mov r8, 4
+  0x564e87d2c007: add rsi, 0x40
+  0x564e87d2c00b: mov qword ptr [rdi + 0x10], rsi
+  0x564e87d2c00f: mov rax, r8
+  0x564e87d2c012: ret
+
+nil
+```
+
+`rake test` should pass one test that runs `test/none.rb`.
+
+Also try changing what you're giving to `C.to_value` in `putnil` to double-check
+the interpreter is calling the JIT function you generated.
 
 </details>
 
