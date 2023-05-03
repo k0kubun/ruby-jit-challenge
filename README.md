@@ -560,20 +560,21 @@ Test the instruction with `bin/ruby --rjit-dump-disasm test/lt.rb`.
 </details>
 
 <details>
-<summary>Compiling branchunless</summary>
-
-### Compiling branchunless
-
-TODO
-
-</details>
-
-<details>
 <summary>Compiling putself</summary>
 
 ### Compiling putself
 
-TODO
+`fib` method is called without an argument. In Ruby, it implicitly uses the receiver of the current frame (`cfp`).
+`cfp` is in `rsi`, and the offset to `cfp->self` (receiver) is implemented at `C.rb_control_frame_t.offsetof(:self)`.
+So `[:rsi, C.rb_control_frame_t.offsetof(:self)]` can be used to fetch a receiver.
+
+An example implementation looks like this.
+
+```rb
+in :putself
+  asm.mov(STACK[stack_size], [CFP, C.rb_control_frame_t.offsetof(:self)])
+  stack_size += 1
+```
 
 </details>
 
@@ -581,6 +582,18 @@ TODO
 <summary>Compiling opt_send_without_block</summary>
 
 ### Compiling opt\_send\_without\_block
+
+TODO
+
+</details>
+
+<details>
+<summary>Compiling branchunless</summary>
+
+### Compiling branchunless
+
+Congratulations on making it to this stage. You've accomplished a lot already.
+I hope you've enjoyed your journey.
 
 TODO
 
