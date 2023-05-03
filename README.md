@@ -326,10 +326,27 @@ $ ruby --dump=insns test/plus.rb
 0005 leave                                                            (   3)[Re]
 ```
 
+`plus` has four instructions: `putobject_INT2FIX_1_`, `putobject`, `opt_plus`, and `leave`.
+
+`putobject_INT2FIX_1_` is "operand unification" of `putobject 1`.
+`putnil` and `leave` didn't take any arguments, but `putobject` does.
+We call an argument of instructions an operand.
+At `0001`, there's `putobject` instruction, and its operand `2` is at `0002` before `opt_plus` at `0003`.
+At `0000`, there's `putobject_INT2FIX_1_` instruction, and its operand `INT2FIX(1)` is unified with `putobject`,
+so it doesn't take an operand, which makes the ISeq shorter.
+
+`putobject` (and `putobject_INT2FIX_1_`) pushes an operand to the stack.
+Both instructions and operands are in `iseq.body.iseq_encoded`.
+To get an operand for `0001 putobject` which is at `0002`, you need to look at `iseq.body.iseq_encoded[2]`.
+So that works like `stack << iseq.body.iseq_encoded[2]`.
+
+`opt_plus` pops two objects from the stack, adds them, and pushes the result onto the stack.
+So it's `stack << stack.pop + stack.pop`.
+
 <details>
 <summary>Compiling putobject</summary>
 
-### Compiling leave
+### Compiling putobject
 
 TODO
 
