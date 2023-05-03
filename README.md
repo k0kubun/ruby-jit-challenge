@@ -400,6 +400,8 @@ in :opt_plus
   stack_size -= 1
 ```
 
+Test those instructions with `bin/ruby --rjit-dump-disasm test/plus.rb`.
+
 </details>
 
 ## 3. Compile fibonacci
@@ -443,12 +445,45 @@ local table (size: 1, argc: 1 [opts: 0, rest: -1, post: 0, block: -1, kw: -1@-1,
 0030 leave                                                            (   6)[Re]
 ```
 
+`fib` has many more instructions.
+
+`opt_minus` and `opt_lt` are like `opt_plus` except it performs `#-` and `#<` respectively.
+
+`getlocal_WC_0` is operand unification of `getlocal *, 0` where `WC` stands for a wildcard.
+It pushes a local variable onto the stack.
+
+`branchunless` jumps to a destination specified by an operand when a stack-top value is
+false or nil.
+
+`putself` pushes a receiver onto the stack.
+
+`opt_send_without_block` calls a method with a receiver and arguments on the stack.
+
 <details>
 <summary>Compiling opt_minus</summary>
 
 ### Compiling opt\_minus
 
-TODO
+Remember `opt_plus`.
+You'll take `(num1 << 1) + 1` and `(num2 << 1) + 1` as operands.
+If you subtract one by the other, the result will be `((num1 - num2) << 1)`.
+But the actual representation for `num1 - num2` is `((num1 - num2) << 1) + 1`.
+So you'll need to add 1 to it.
+
+Here's an example implementation.
+
+```rb
+in :opt_minus
+  recv = STACK[stack_size - 2]
+  obj = STACK[stack_size - 1]
+
+  asm.sub(recv, obj)
+  asm.add(recv, 1)
+
+  stack_size -= 1
+```
+
+Test the instruction with `bin/ruby --rjit-dump-disasm test/minus.rb`.
 
 </details>
 
