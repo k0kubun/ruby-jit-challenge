@@ -473,6 +473,8 @@ So you'll need to add 1 to it.
 Here's an example implementation.
 
 ```rb
+STACK = [:r8, :r9, :r10, :r11]
+
 in :opt_minus
   recv = STACK[stack_size - 2]
   obj = STACK[stack_size - 1]
@@ -515,8 +517,11 @@ in :getlocal_WC_0
   # Load the local variable
   idx = iseq.body.iseq_encoded[insn_index + 1]
   asm.mov(STACK[stack_size], [:rax, -idx * C.VALUE.size])
+
   stack_size += 1
 ```
+
+Test the instruction with `bin/ruby --rjit-dump-disasm test/local.rb`.
 
 </details>
 
@@ -525,7 +530,32 @@ in :getlocal_WC_0
 
 ### Compiling opt\_lt
 
-TODO
+Again, assume operands are `Integer`s.
+Comparing `(num1 << 1) + 1` and `(num2 << 1) + 1` would return the same result as comparing `num1` and `num2`.
+You'll use a `cmp` instruction that compares them.
+
+Once you compare the values, you'll need to generate code that conditionally returns something.
+`Integer#<` returns `true` or `false`.
+There's a family of instructions that conditionally set a value based on a prior `cmp` (or `test`).
+To conditionally set a value if `num1 < num2` holds based on the previous `cmp`,
+you can use `cmovl` (conditionally move if less).
+
+An example implementation is as follows.
+
+```rb
+in :opt_lt
+  recv = STACK[stack_size - 2]
+  obj = STACK[stack_size - 1]
+
+  asm.cmp(recv, obj)
+  asm.mov(recv, C.to_value(false))
+  asm.mov(:rax, C.to_value(true))
+  asm.cmovl(recv, :rax)
+
+  stack_size -= 1
+```
+
+Test the instruction with `bin/ruby --rjit-dump-disasm test/lt.rb`.
 
 </details>
 
