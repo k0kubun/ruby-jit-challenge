@@ -340,7 +340,7 @@ Both instructions and operands are in `iseq.body.iseq_encoded`.
 To get an operand for `0001 putobject` which is at `0002`, you need to look at `iseq.body.iseq_encoded[2]`.
 So that works like `stack << iseq.body.iseq_encoded[2]`.
 
-`opt_plus` pops two objects from the stack, adds them, and pushes the result onto the stack.
+`opt_plus` pops two objects from the stack, calls `#+`, and pushes the result onto the stack.
 So it's `stack << stack.pop + stack.pop`.
 
 <details>
@@ -348,7 +348,26 @@ So it's `stack << stack.pop + stack.pop`.
 
 ### Compiling putobject
 
-TODO
+For `putobject_INT2FIX_1_`, you need to hard-code the operand as `1`.
+Instead of `INT2FIX(1)` that is used in C, you can use `C.to_value(1)` instead.
+So it can be:
+
+```rb
+STACK = [:r8, :r9]
+
+in :putobject_INT2FIX_1_
+  asm.mov(STACK[stack_size], C.to_value(1))
+  stack_size += 1
+```
+
+For `putobject`, you need to get an operand from `iseq.body.iseq_encoded` as explained above.
+You could write:
+
+```rb
+in :putobject
+  operand = iseq.body.iseq_encoded[insn_index + 1]
+  asm.mov(STACK[stack_size], operand)
+```
 
 </details>
 
@@ -357,7 +376,29 @@ TODO
 
 ### Compiling opt\_plus
 
-TODO
+`opt_plus` is capable of handling any `#+` methods, but specifically optimizes a few methods such as `Integer#+`.
+In this tutorial, we're going to handle only `Integer`s. It's okay to assume operands are all `Integer`s.
+
+In CRuby, a small-enough `Integer` is expressed as `(num << 1) + 1`.
+So an `Integer` object `1` is expressed as `(1 << 1) + 1`, which is `3`.
+
+You'll take `(num1 << 1) + 1` and `(num2 << 1) + 1` as operands.
+If you just add them, the result will be `((num1 + num2) << 1) + 2`.
+The actual representation for `num1 + num2` is `((num1 + num2) << 1) + 1`,
+so you'll need to subtract it by 1.
+
+Here's an example implementation.
+
+```rb
+in :opt_plus
+  recv = STACK[stack_size - 2]
+  obj = STACK[stack_size - 1]
+
+  asm.add(recv, obj)
+  asm.sub(recv, 1)
+
+  stack_size -= 1
+```
 
 </details>
 
