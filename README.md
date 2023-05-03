@@ -6,7 +6,7 @@ Supplemental material to [Ruby JIT Hacking Guide](https://rubykaigi.org/2023/pre
 
 This is a small tutorial to write a JIT compiler in Ruby.
 We don't expect any prior experience in compilers or assembly languages.
-It's supposed to take only several minutes if you open all hints, but challenging if you don't.
+It's supposed to take only several minutes if you read all hints, but challenging if you don't.
 
 You'll write a JIT that can compile a Fibonacci benchmark.
 With relaxed implementation requirements, you'll hopefully create a JIT faster than existing Ruby JITs with ease.
@@ -627,7 +627,8 @@ Remember what you did at `leave` instruction; pushing a frame means to subtract 
 Since `putself` refers to it, you may set `cfp->self` as well, using `C.rb_control_frame_t.offsetof(:self)`. 
 Note, however, that we don't actually use the receiver in `cfp` for method dispatch. You may just skip it.
 
-Before and after calling a callee function, you have to save and restore registers you're using for the stack.
+Before and after calling a callee function, you have to save and restore registers you're using for the stack
+so that the callee function can use them.
 We've used `r8`, `r9`, `r10`, and `r11` as `STACK`. You can use `push` instruction to push a register to the machine stack,
 and then use `pop` instruction in the reverse order to restore a register from the machine stack.
 
@@ -692,7 +693,194 @@ is already a bit faster than that. It could be even faster, for example, if you 
 
 ### Compiling branchunless
 
-TODO
+It's almost there. This will be the last instruction you'll compile to run `fib`.
+This is probably the most interesting and challenging part of this tutorial.
+
+Supporting this instruction requires a major refactoring on the boilerplate code.
+It's because past test scripts run instructions from top to bottom whereas
+you need to jump to different instruction indexes based on runtime values.
+
+There's not only the jump support, but also complexity in dependencies.
+Let's have a look at `ruby --dump=insns test/branch.rb`.
+
+```
+== disasm: #<ISeq:branch@test/branch.rb:1 (1,0)-(7,3)>
+local table (size: 1, argc: 1 [opts: 0, rest: -1, post: 0, block: -1, kw: -1@-1, kwrest: -1])
+[ 1] flag@0<Arg>
+0000 getlocal_WC_0                          flag@0                    (   2)[LiCa]
+0002 branchunless                           6
+
+0004 putobject_INT2FIX_1_                                             (   3)[Li]
+0005 leave                                                            (   7)[Re]
+
+0006 putobject_INT2FIX_0_                                             (   5)[Li]
+0007 leave                                                            (   7)[Re]
+```
+
+I inserted newlines into the actual output to indicate "basic block" boundaries.
+There are three blocks: the first block from `0000`, the second block from `0004`, and the third block from `0006`.
+
+Let's say you start compiling the first block, you'll need to generate code to jump to the second block or the third block.
+However, the second block and the third block have not been compiled yet. You cannot compile it from top to bottom as before.
+
+Then, why not compile it from the second block and the third block, and then compile the first block?
+Sure, it works for this example. But what if the second block calls the first block?
+It's a circular dependency. And it's exactly what `fib` does.
+So you have to design the compiler in a way that it supports circular dependencies.
+
+One suggested solution is to write out dummy addresses first, and then rewrite them after all blocks are compiled.
+Rewriting a past address requires you to figure out the address that `Assembler` used.
+The `Assembler` in the boilerplate doesn't have such interface, so you have to define it yourself.
+
+For example, you could add this kind of interface.
+
+```diff
+--- a/lib/jit/assembler.rb
++++ b/lib/jit/assembler.rb
+@@ -50,6 +50,7 @@ module JIT
+     end
+
+     def assemble(addr)
++      set_start_addrs(addr)
+       resolve_rel32(addr)
+       resolve_labels
+
+@@ -905,6 +876,12 @@ module JIT
+       @labels[label] = @bytes.size
+     end
+
++    # Mark the starting addresses of a branch
++    def branch(branch)
++      @branches[@bytes.size] << branch
++      yield
++    end
++
+     private
+
+     def insn(prefix: 0, opcode:, rd: nil, mod_rm: nil, disp: nil, imm: nil)
+@@ -1010,6 +987,14 @@ module JIT
+       [Rel32.new(addr), Rel32Pad, Rel32Pad, Rel32Pad]
+     end
+
++    def set_start_addrs(write_addr)
++      (@bytes.size + 1).times do |index|
++        @branches.fetch(index, []).each do |branch|
++          branch.start_addr = write_addr + index
++        end
++      end
++    end
+```
+
+Then a random object you're giving to `#branch` will get `start_addr` assigned.
+If the object also has a Proc to re-compile a branch, you can just buffer those objects
+and calls them later.
+
+To simplify the problem, you could split an ISeq into basic blocks, and just compile
+each block as before. Here's an example logic that works for the test scripts in this tutorial.
+
+```rb
+# Get a list of basic blocks in a method
+def split_blocks(iseq, insn_index: 0, stack_size: 0, split_indexes: [])
+  return [] if split_indexes.include?(insn_index)
+  split_indexes << insn_index
+
+  block = { start_index: insn_index, end_index: nil, stack_size: }
+  blocks = [block]
+
+  while insn_index < iseq.body.iseq_size
+    insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
+    case insn.name
+    when :branchunless
+      block[:end_index] = insn_index
+      stack_size += sp_inc(iseq, insn_index)
+      next_index = insn_index + insn.len
+      blocks += split_blocks(iseq, insn_index: next_index, stack_size:, split_indexes:)
+      blocks += split_blocks(iseq, insn_index: next_index + iseq.body.iseq_encoded[insn_index + 1], stack_size:, split_indexes:)
+      break
+    when :leave
+      block[:end_index] = insn_index
+      break
+    else
+      stack_size += sp_inc(iseq, insn_index)
+      insn_index += insn.len
+    end
+  end
+
+  blocks
+end
+
+# Get a stack size increase for a YARV instruction.
+def sp_inc(iseq, insn_index)
+  insn = INSNS.fetch(C.rb_vm_insn_decode(iseq.body.iseq_encoded[insn_index]))
+  case insn.name
+  in :opt_plus | :opt_minus | :opt_lt | :leave | :branchunless
+    -1
+  in :nop
+    0
+  in :putnil | :putobject_INT2FIX_0_ | :putobject_INT2FIX_1_ | :putobject | :putself | :getlocal_WC_0
+    1
+  in :opt_send_without_block
+    cd = C.rb_call_data.new(iseq.body.iseq_encoded[insn_index + 1])
+    -C.vm_ci_argc(cd.ci)
+  end
+end
+```
+
+Each block is represented as a Hash that has `start_index`, `end_index`, and an initial `stack_size`.
+The first block's first address should be set to `iseq.body.jit_func`.
+
+Finally, let's compile `branchunless`. With `blocks` made by `split_blocks` and `branches = []`, an example implementation
+looks like this.
+
+```rb
+Branch = Struct.new(:start_addr, :compile)
+
+in :branchunless
+  next_index = insn_index + insn.len
+  next_block = blocks.find { |block| block[:start_index] == next_index }
+
+  jump_index = next_index + iseq.body.iseq_encoded[insn_index + 1]
+  jump_block = blocks.find { |block| block[:start_index] == jump_index }
+
+  # This `test` sets ZF only for Qnil and Qfalse, which lets jz jump.
+  asm.test(STACK[stack_size - 1], ~C.to_value(nil))
+
+  branch = Branch.new
+  branch.compile = proc do |asm|
+    dummy_addr = @jit_buf + JIT_BUF_SIZE
+    asm.jz(jump_block.fetch(:start_addr, dummy_addr))
+    asm.jmp(next_block.fetch(:start_addr, dummy_addr))
+  end
+  asm.branch(branch) do
+    branch.compile.call(asm)
+  end
+  branches << branch
+```
+
+The `branches` are then re-compiled with:
+
+```rb
+branches.each do |branch|
+  with_addr(branch[:start_addr]) do
+    asm = Assembler.new
+    branch.compile.call(asm)
+    write(asm)
+  end
+end
+```
+
+```rb
+def with_addr(addr)
+  jit_pos = @jit_pos
+  @jit_pos = addr - @jit_buf
+  yield
+ensure
+  @jit_pos = jit_pos
+end
+```
+
+That's all. Test it with `bin/ruby --rjit-dump-disasm test/branch.rb`.
+If everything is done correctly, `bin/ruby test/fib.rb` should also work.
 
 </details>
 
