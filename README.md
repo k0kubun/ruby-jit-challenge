@@ -492,7 +492,31 @@ Test the instruction with `bin/ruby --rjit-dump-disasm test/minus.rb`.
 
 ### Compiling getlocal
 
-TODO
+`getlocal_WC_0` means `getlocal *, 0`. The `*` part is an operand and it has an index to the local variable from an "environment pointer" (EP).
+The `0` part is a "level", which shows how many levels of EPs you need to go deeper to get a local variable.
+This is needed when a local variable environment is nested, e.g. a block inside a method.
+Since it's `0` this time, you will not need to worry about digging EPs. You'll need to get the EP of the current "control frame" (`cfp`).
+
+`cfp` is in `rsi` and you can get the offset to `cfp->ep` from `C.rb_control_frame_t.offsetof(:ep)`.
+So `[:rsi, C.rb_control_frame_t.offsetof(:ep)]` can be used to get an EP.
+
+Once you get an EP, you need to find a local variable. The index is an operand, which can be fetched with `iseq.body.iseq_encoded[insn_index + 1]`.
+The index is a positive number but local variables actually live "below" the EP. So you have to negate the index.
+Besides, the unit of indexes is a `VALUE` type in C, which represents a Ruby object. So the index to a local variable from an EP is
+`-iseq.body.iseq_encoded[insn_index + 1] * C.VALUE.size`.
+
+All in all, an example implementation looks like this.
+
+```rb
+in :getlocal_WC_0
+  # Get EP
+  asm.mov(:rax, [CFP, C.rb_control_frame_t.offsetof(:ep)])
+
+  # Load the local variable
+  idx = iseq.body.iseq_encoded[insn_index + 1]
+  asm.mov(STACK[stack_size], [:rax, -idx * C.VALUE.size])
+  stack_size += 1
+```
 
 </details>
 
