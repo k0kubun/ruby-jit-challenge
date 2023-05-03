@@ -583,7 +583,107 @@ in :putself
 
 ### Compiling opt\_send\_without\_block
 
-TODO
+Congratulations on making it to this stage. You've accomplished a lot already.
+I hope you've enjoyed your journey.
+We're going to tackle a couple of instructions that may be the most challenging part in this tutorial.
+If you get lost, consider just copying the code that is shown later and playing with it.
+
+`opt_send_without_block` supports various method calls.
+However, in this tutorial, it's okay to assume any method call is a Ruby method call.
+
+As long as you use `--rjit-call-threshold=3` (compile methods that have been called three times),
+the cache of all `opt_send_without_block` instructions is "warmed up" in all test scripts.
+It means that the cache has a reference to an ISeq. For simplicity in this tutorial,
+assume that it's not gonna change and you won't need to invalidate it.
+
+`opt_send_without_block` takes a "call data" operand, which is a pair of "call info" and "call cache".
+A call data object can be instantiated with `cd = C.rb_call_data.new(iseq.body.iseq_encoded[insn_index + 1])`.
+
+A call info is in `cd.ci`, which has information like the number of arguments.
+`ci` has a packed data structure which cannot be accessed like a normal struct.
+So you need to get the number of arguments using a special helper, `C.vm_ci_argc(ci)`.
+
+A call cache has a reference to an ISeq. `cd.cc.cme_.def.body.iseq.iseqptr` has a callee ISeq.
+For better performance, we want to compile everything and directly jump to an already-compiled address.
+You can call `compile(callee_iseq)` if `callee_iseq.body.jit_func` is still `0` (NULL in C).
+
+Once a callee function becomes ready, we need to prepare for calling a method.
+Since our `getlocal` implementation gets a local variable on the stack relative to an EP,
+we have to set arguments to the stack, which are local variables to the callee.
+
+The VM stack looks like this when you call a method.
+
+```
+| locals | cme | block_handler | frame type (callee EP) | stack bottom (callee SP) |
+```
+
+For locals, we want to put arguments. There's a "stack pointer" in `SP` which points to
+a free stack slot above the stack top. You could write values to it and keep bumping the SP until you finish writing all arguments.
+Once it's done, SP needs to be bumped three more times to accommodate a "cme" (callable method entry), a block handler, and a frame type.
+You don't need to use them in this tutorial. Just bump SP by 3 to get a callee SP. EP is one slot below that.
+
+Set those `sp` and `ep` fields to a callee `cfp` after bumping `cfp`.
+Remember what you did at `leave` instruction; pushing a frame means to subtract it by `C.rb_control_frame_t.size`.
+Since `putself` refers to it, you may set `cfp->self` as well, using `C.rb_control_frame_t.offsetof(:self)`. 
+Note, however, that we don't actually use the receiver in `cfp` for method dispatch. You may just skip it.
+
+Before and after calling a callee function, you have to save and restore registers you're using for the stack.
+We've used `r8`, `r9`, `r10`, and `r11` as `STACK`. You can use `push` instruction to push a register to the machine stack,
+and then use `pop` instruction in the reverse order to restore a register from the machine stack.
+
+An example implementation looks like this.
+
+```rb
+in :opt_send_without_block
+  # Compile the callee ISEQ
+  cd = C.rb_call_data.new(iseq.body.iseq_encoded[insn_index + 1])
+  callee_iseq = cd.cc.cme_.def.body.iseq.iseqptr
+  if callee_iseq.body.jit_func == 0
+    compile(callee_iseq)
+  end
+
+  # Get SP
+  asm.mov(:rax, [CFP, C.rb_control_frame_t.offsetof(:sp)])
+  # Spill arguments
+  C.vm_ci_argc(cd.ci).times do |i|
+    asm.mov([:rax, C.VALUE.size * i], STACK[stack_size - C.vm_ci_argc(cd.ci) + i])
+  end
+
+  # Push cfp: ec->cfp = cfp - 1
+  asm.sub(CFP, C.rb_control_frame_t.size)
+  asm.mov([EC, C.rb_execution_context_t.offsetof(:cfp)], CFP)
+  # Set SP
+  asm.add(:rax, C.VALUE.size * (C.vm_ci_argc(cd.ci) + 3))
+  asm.mov([CFP, C.rb_control_frame_t.offsetof(:sp)], :rax)
+  # Set EP
+  asm.sub(:rax, C.VALUE.size)
+  asm.mov([CFP, C.rb_control_frame_t.offsetof(:ep)], :rax)
+  # Set receiver
+  asm.sub(:rax, STACK[stack_size - C.vm_ci_argc(cd.ci) - 1])
+  asm.mov([CFP, C.rb_control_frame_t.offsetof(:self)], :rax)
+
+  # Save stack registers
+  STACK.each do |reg|
+    asm.push(reg)
+  end
+
+  # Call the JIT func
+  asm.call(callee_iseq.body.jit_func)
+
+  # Pop stack registers
+  STACK.reverse_each do |reg|
+    asm.pop(reg)
+  end
+
+  # Set a return value
+  asm.mov(STACK[stack_size - C.vm_ci_argc(cd.ci) - 1], :rax)
+```
+
+Test the instruction with `bin/ruby --rjit-dump-disasm test/send.rb`.
+
+This code has some optimization opportunities when you need to support only `fib`.
+In fact, my [reference implementation](https://github.com/Shopify/ruby-jit-challenge/blob/k0kubun/lib/jit/compiler.rb)
+is already a bit faster than that. It could be even faster, for example, if you use registers for local variables.
 
 </details>
 
@@ -591,9 +691,6 @@ TODO
 <summary>Compiling branchunless</summary>
 
 ### Compiling branchunless
-
-Congratulations on making it to this stage. You've accomplished a lot already.
-I hope you've enjoyed your journey.
 
 TODO
 
