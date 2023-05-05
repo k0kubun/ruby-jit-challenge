@@ -678,6 +678,8 @@ in :opt_send_without_block
 
   # Set a return value
   asm.mov(STACK[stack_size - C.vm_ci_argc(cd.ci) - 1], :rax)
+
+  stack_size -= C.vm_ci_argc(cd.ci)
 ```
 
 Test the instruction with `bin/ruby --rjit-dump-disasm test/send.rb`.
