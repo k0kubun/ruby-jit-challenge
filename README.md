@@ -142,7 +142,7 @@ For `test/none.rb`, only `mov`, `add`, and `ret` are necessary.
 ### Registers
 
 Registers are like variables in machine code.
-You're free to use registers in whatever way, but a [reference implementation](https://github.com/Shopify/ruby-jit-challenge/blob/k0kubun/lib/jit/compiler.rb)
+You're free to use registers in whatever way, but a [reference implementation](https://github.com/k0kubun/ruby-jit-challenge/blob/k0kubun/lib/jit/compiler.rb)
 used only the following registers.
 
 | Register | Purpose |
@@ -685,7 +685,7 @@ in :opt_send_without_block
 Test the instruction with `bin/ruby --rjit-dump-disasm test/send.rb`.
 
 This code has some optimization opportunities when you need to support only `fib`.
-In fact, my [reference implementation](https://github.com/Shopify/ruby-jit-challenge/blob/k0kubun/lib/jit/compiler.rb)
+In fact, my [reference implementation](https://github.com/k0kubun/ruby-jit-challenge/blob/k0kubun/lib/jit/compiler.rb)
 is already a bit faster than that. It could be even faster, for example, if you use registers for local variables.
 
 </details>
