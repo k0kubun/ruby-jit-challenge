@@ -367,6 +367,7 @@ You could write:
 in :putobject
   operand = iseq.body.iseq_encoded[insn_index + 1]
   asm.mov(STACK[stack_size], operand)
+  stack_size += 1
 ```
 
 </details>
