@@ -661,7 +661,7 @@ in :opt_send_without_block
   asm.sub(:rax, C.VALUE.size)
   asm.mov([CFP, C.rb_control_frame_t.offsetof(:ep)], :rax)
   # Set receiver
-  asm.sub(:rax, STACK[stack_size - C.vm_ci_argc(cd.ci) - 1])
+  asm.mov(:rax, STACK[stack_size - C.vm_ci_argc(cd.ci) - 1])
   asm.mov([CFP, C.rb_control_frame_t.offsetof(:self)], :rax)
 
   # Save stack registers
